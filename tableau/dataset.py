@@ -185,17 +185,17 @@ class DataWalker(object):
             self(_datum)
         if value.this_side_fields is not None:
             if not value.rendered:
-                other_side_fields = value.other_side_fields or _datum and _datum._id_fields
-                if not other_side_fields:
-                    raise ValueError("%s.%s: cannot determine other_side_fields" % (datum._schema, name))
-                if len(value.this_side_fields) != len(other_side_fields):
-                    raise ValueError("%s.%s: number of this_side fields doesn't match to that of other_side field (%d != %d)" % (datum._schema, name, len(self.this_side_fields), len(other_side_fields)))
-                for k1, k2 in zip(value.this_side_fields, other_side_fields):
-                    if _datum is not None:
-                        v = getattr(_datum, k2)
-                    else:
-                        v = None
-                    setattr(datum, k1, v)
+                if _datum is not None:
+                    other_side_fields = value.other_side_fields or _datum._id_fields
+                    if not other_side_fields:
+                        raise ValueError("%s.%s: cannot determine other_side_fields" % (datum._schema, name))
+                    if len(value.this_side_fields) != len(other_side_fields):
+                        raise ValueError("%s.%s: number of this_side fields doesn't match to that of other_side field (%d != %d)" % (datum._schema, name, len(self.this_side_fields), len(other_side_fields)))
+                    for k1, k2 in zip(value.this_side_fields, other_side_fields):
+                        setattr(datum, k1, getattr(_datum, k2))
+                else:
+                    for k1 in value.this_side_fields:
+                        setattr(datum, k1, None)
 
     def _handle(self, datum, name, value):
         if isinstance(value, one_to_many):
