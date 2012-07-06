@@ -122,4 +122,16 @@ class DataSetTest(TestCase):
             DataWalker(suite)(a)
             self.assertEqual(i, a.parent_id)
 
+    def testManyToOne2(self):
+        a = Datum(
+            'Schema',
+            'id',
+            id=1,
+            parent=many_to_one(
+                None
+                )
+            )
 
+        suite = DataSuite()
+        DataWalker(suite)(a)
+        self.assertEqual(None, a._fields['parent'].render())

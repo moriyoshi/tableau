@@ -8,7 +8,13 @@ __all__ = [
     'many_to_many',
     'one_to_many',
     'auto',
+    'unspecified',
     ]
+
+class UnspecifiedType(object):
+    pass
+
+unspecified = UnspecifiedType()
 
 class DynamicField(object):
     rendered = False
@@ -47,17 +53,35 @@ class Lazy(DynamicField):
             return self.func(*(self.container, self.name)[0:len(self.argspec.args)])
 
 class many_to_one(DynamicField):
-    def __init__(self, schema_or_value=None, this_side_fields=None, other_side_fields=None):
+    def __init__(self, schema_or_value=unspecified, this_side_fields=None, other_side_fields=None):
         self.rendered = False
         from tableau.containers import Datum
+        self._value = None
+        self._value_set = False
         if isinstance(schema_or_value, Datum):
             self.schema = schema_or_value._schema
             self.value = schema_or_value
-        else:
+        elif schema_or_value is None:
             self.schema = schema_or_value
             self.value = None
+        elif isinstance(schema_or_value, basestring):
+            self.schema = schema_or_value
+        elif schema_or_value is not unspecified:
+            raise TypeError("schema_or_value must be a Datum, None, or Unspecified")
+
         self.this_side_fields = string_container_from_value(this_side_fields, tuple)
         self.other_side_fields = string_container_from_value(other_side_fields, tuple)
+
+    def get_value(self):
+        if not self._value_set:
+            raise ValueError("value is not specified")
+        return self._value
+
+    def set_value(self, value):
+        self._value = value
+        self._value_set = True
+
+    value=property(get_value, set_value)
 
     def bind(self, container, name):
         if self.this_side_fields is None:
@@ -66,7 +90,7 @@ class many_to_one(DynamicField):
 
     def render(self):
         if self.value is None:
-            raise ValueError("value is not specified")
+            return None
         other_side_fields = self.other_side_fields or self.value._id_fields
         if len(other_side_fields) > 1:
             raise ValueError("multiple identifiers cannot be rendered to a single field")
