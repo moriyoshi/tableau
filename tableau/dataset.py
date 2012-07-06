@@ -147,7 +147,8 @@ class DataWalker(object):
                         rel = v
                 if rel is None:
                     raise ValueError("cannot determine the foreign key fields; datum %s has no explicit associations to %s." % (_datum, datum._schema))
-                m = dict(zip(rel.this_side_fields, rel.other_side_fields))
+                other_side_fields = rel.other_side_fields or datum._id_fields
+                m = dict(zip(rel.this_side_fields, other_side_fields))
 
             for k1, k2 in m.items():
                 setattr(_datum, k1, getattr(datum, k2))
@@ -205,6 +206,6 @@ class DataWalker(object):
     def __call__(self, datum):
         dataset = self.suite[datum._schema]
         if dataset.add(datum):
-            for k, v in datum._fields.iteritems():
+            for k, v in list(datum._fields.items()):
                 self._handle(datum, k, v)
         return datum

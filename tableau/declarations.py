@@ -95,7 +95,7 @@ class many_to_many(DynamicField, Aggregation):
         return 'many_to_many(..., this_side_fields=%s, other_side_fields=%s, via=%s)' % (_repr(self.this_side_fields), _repr(self.other_side_fields), _repr(self.via))
 
 class one_to_many(DynamicField, Aggregation):
-    def __init__(self, collection, referring_fields, referred_fields=None):
+    def __init__(self, collection, referring_fields=None, referred_fields=None):
         self.collection = collection
         self.referring_fields = string_container_from_value(referring_fields, tuple)
         self.referred_fields = string_container_from_value(referred_fields, tuple)
