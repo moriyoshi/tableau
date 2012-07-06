@@ -25,5 +25,6 @@ setup(
     license='MIT License',
     keywords='test testing fixture seed',
     url='http://github.com/moriyoshi/tableau',
+    test_suite='tableau.tests',
     packages=find_packages()
     )
