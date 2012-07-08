@@ -174,6 +174,9 @@ class DataSetTest(TestCase):
         self.assertEqual(1, a._tableau_fields['parent'].render())
 
 class SADatumTest(TestCase):
+    def assertIsInstance(self, a, klasses, msg=None):
+        self.assertTrue(isinstance(a, klasses), msg)
+
     def setUp(self):
         self.metadata = MetaData()
         self.declarative_base = declarative_base(metadata=self.metadata)
