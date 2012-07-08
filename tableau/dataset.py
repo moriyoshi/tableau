@@ -5,7 +5,7 @@ import logging
 import re
 from warnings import warn
 from itertools import chain
-from tableau.containers import Datum
+from tableau.containers import DatumBase
 from tableau.declarations import one_to_many, many_to_many, many_to_one, DynamicField, auto
 
 __all__ = [
@@ -30,8 +30,9 @@ class DataSet(object):
         if self.logger.isEnabledFor(logging.DEBUG):
             self.logger.debug('Trying to add %s' % datum)
 
-        if isinstance(datum._id_fields, auto):
-            setattr(datum, datum._id_fields[0], self.seq)
+        if isinstance(datum._tableau_id_fields, auto):
+            setattr(datum, datum._tableau_id_fields[0], self.seq)
+            assert getattr(datum, datum._tableau_id_fields[0], self.seq)
             self.seq += 1
         self.data.add(datum)
         return True
@@ -39,8 +40,8 @@ class DataSet(object):
     def get(self):
         return sorted(iter(self.data),
             lambda a, b: \
-                cmp(getattr(a, a._id_fields[0]), getattr(b, b._id_fields[0])) \
-                if a._id_fields and b._id_fields else 0)
+                cmp(getattr(a, a._tableau_id_fields[0]), getattr(b, b._tableau_id_fields[0])) \
+                if a._tableau_id_fields and b._tableau_id_fields else 0)
 
     def __iter__(self):
         return iter(self.get())
@@ -113,41 +114,41 @@ class DataWalker(object):
 
     def _handle_one_to_many(self, datum, name, value):
         for _datum in iter(value()):
-            self.suite.add_dependency(_datum._schema, datum._schema)
+            self.suite.add_dependency(_datum._tableau_schema, datum._tableau_schema)
             referring_fields = value.referring_fields
             referred_fields = value.referred_fields
             m = {}
             if referring_fields is not None:
                 if referred_fields is not None:
                     if len(referring_fields) != len(referred_fields):
-                        raise ValueError("%s.%s: len(referring_fields) != len(referred_fields) (%d != %d)" % (datum._schema, name, len(referring_fields), len(referred_fields)))
+                        raise ValueError("%s.%s: len(referring_fields) != len(referred_fields) (%d != %d)" % (datum._tableau_schema, name, len(referring_fields), len(referred_fields)))
                 else:
-                    if len(referring_fields) != len(datum._id_fields):
-                        raise ValueError("%s.%s: len(referring_fields) != len(_id_fields) (%d != %d)" % (datum._schema, name, len(referring_fields), len(datum._id_fields)))
+                    if len(referring_fields) != len(datum._tableau_id_fields):
+                        raise ValueError("%s.%s: len(referring_fields) != len(_tableau_id_fields) (%d != %d)" % (datum._tableau_schema, name, len(referring_fields), len(datum._tableau_id_fields)))
 
                 for i, k in enumerate(referring_fields):
-                    v = _datum._fields.get(k)
+                    v = _datum._tableau_fields.get(k)
                     if v is not None and isinstance(v, many_to_one):
-                        if v.schema is not None and v.schema != datum._schema:
-                            raise ValueError("field %s of datum %s is declared to asssociate it to %s while its container is %s" % (k, _datum, v.schema, datum._schema))
+                        if v.schema is not None and v.schema != datum._tableau_schema:
+                            raise ValueError("field %s of datum %s is declared to asssociate it to %s while its container is %s" % (k, _datum, v.schema, datum._tableau_schema))
                         if referred_fields is not None and (v.other_side_fields != referred_fields[i] and v.other_side_fields[0] != name):
-                            raise ValueError("field %s of datum %s is declared to asssociate it to %s via %s while expecting %s" % (k, _datum, datum._schema, v.other_side_field, referred_fields[i]))
+                            raise ValueError("field %s of datum %s is declared to asssociate it to %s via %s while expecting %s" % (k, _datum, datum._tableau_schema, v.other_side_field, referred_fields[i]))
                         m[k] = v.other_side_fields[i]
                     else:
                         if referred_fields is None:
-                            m[k] = datum._id_fields[i]
+                            m[k] = datum._tableau_id_fields[i]
                         else:
                             m[k] = referred_fields[i]
             else:
                 rel = None
-                for k, v in _datum._fields.items():
-                    if isinstance(v, many_to_one) and v.schema == datum._schema:
+                for k, v in _datum._tableau_fields.items():
+                    if isinstance(v, many_to_one) and v.schema == datum._tableau_schema:
                         if rel is not None:
-                            raise ValueError("datum %s has more than one many-to-one associations to %s" % (_datum, datum._schema))
+                            raise ValueError("datum %s has more than one many-to-one associations to %s" % (_datum, datum._tableau_schema))
                         rel = v
                 if rel is None:
-                    raise ValueError("cannot determine the foreign key fields; datum %s has no explicit associations to %s." % (_datum, datum._schema))
-                other_side_fields = rel.other_side_fields or datum._id_fields
+                    raise ValueError("cannot determine the foreign key fields; datum %s has no explicit associations to %s." % (_datum, datum._tableau_schema))
+                other_side_fields = rel.other_side_fields or datum._tableau_id_fields
                 m = dict(zip(rel.this_side_fields, other_side_fields))
 
             for k1, k2 in m.items():
@@ -156,16 +157,16 @@ class DataWalker(object):
 
     def _handle_many_to_many(self, datum, name, value):
         for _datum in iter(value()):
-            self.suite.add_dependency(_datum._schema, datum._schema)
+            self.suite.add_dependency(_datum._tableau_schema, datum._tableau_schema)
             self(_datum)
-            these_field_values = tuple(getattr(datum, field) for field in datum._id_fields)
-            those_field_values = tuple(getattr(_datum, field) for field in _datum._id_fields)
+            these_field_values = tuple(getattr(datum, field) for field in datum._tableau_id_fields)
+            those_field_values = tuple(getattr(_datum, field) for field in _datum._tableau_id_fields)
             if len(these_field_values) != len(value.this_side_fields):
-                raise ValueError("%s.%s: number of referencing fields must be identical to the referenced datum's id fields" % (datum._schema, name))
+                raise ValueError("%s.%s: number of referencing fields must be identical to the referenced datum's id fields" % (datum._tableau_schema, name))
             if len(those_field_values) != len(value.other_side_fields):
-                raise ValueError("%s.%s: number of other side's fields must be identical to the other side's datum's id fields" % (datum._schema, name))
+                raise ValueError("%s.%s: number of other side's fields must be identical to the other side's datum's id fields" % (datum._tableau_schema, name))
             if value.via is not None:
-                intermediate_datum = Datum(
+                intermediate_datum = DatumBase(
                     value.via,
                     value.this_side_fields + value.other_side_fields,
                     **dict(
@@ -179,18 +180,18 @@ class DataWalker(object):
 
     def _handle_many_to_one(self, datum, name, value):
         if value.schema:
-            self.suite.add_dependency(datum._schema, value.schema)
+            self.suite.add_dependency(datum._tableau_schema, value.schema)
         _datum = value()
         if _datum is not None:
             self(_datum)
         if value.this_side_fields is not None:
             if not value.rendered:
                 if _datum is not None:
-                    other_side_fields = value.other_side_fields or _datum._id_fields
+                    other_side_fields = value.other_side_fields or _datum._tableau_id_fields
                     if not other_side_fields:
-                        raise ValueError("%s.%s: cannot determine other_side_fields" % (datum._schema, name))
+                        raise ValueError("%s.%s: cannot determine other_side_fields" % (datum._tableau_schema, name))
                     if len(value.this_side_fields) != len(other_side_fields):
-                        raise ValueError("%s.%s: number of this_side fields doesn't match to that of other_side field (%d != %d)" % (datum._schema, name, len(self.this_side_fields), len(other_side_fields)))
+                        raise ValueError("%s.%s: number of this_side fields doesn't match to that of other_side field (%d != %d)" % (datum._tableau_schema, name, len(self.this_side_fields), len(other_side_fields)))
                     for k1, k2 in zip(value.this_side_fields, other_side_fields):
                         setattr(datum, k1, getattr(_datum, k2))
                 else:
@@ -208,8 +209,8 @@ class DataWalker(object):
             self._handle(datum, name, value())
 
     def __call__(self, datum):
-        dataset = self.suite[datum._schema]
+        dataset = self.suite[datum._tableau_schema]
         if dataset.add(datum):
-            for k, v in list(datum._fields.items()):
+            for k, v in list(datum._tableau_fields.items()):
                 self._handle(datum, k, v)
         return datum

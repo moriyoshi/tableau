@@ -59,7 +59,7 @@ class many_to_one(DynamicField):
         self._value = None
         self._value_set = False
         if isinstance(schema_or_value, Datum):
-            self.schema = schema_or_value._schema
+            self.schema = schema_or_value._tableau_schema
             self.value = schema_or_value
         elif schema_or_value is None:
             self.schema = schema_or_value
@@ -91,7 +91,7 @@ class many_to_one(DynamicField):
     def render(self):
         if self.value is None:
             return None
-        other_side_fields = self.other_side_fields or self.value._id_fields
+        other_side_fields = self.other_side_fields or self.value._tableau_id_fields
         if len(other_side_fields) > 1:
             raise ValueError("multiple identifiers cannot be rendered to a single field")
         return getattr(self.value, other_side_fields[0])

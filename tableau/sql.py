@@ -118,14 +118,15 @@ class SQLGenerator(object):
         for dataset in suite:
             for data in dataset:
                 values = [] 
-                for k, v in sorted(data._fields.iteritems(),
+                for k, v in sorted(data._tableau_fields.iteritems(),
                                    lambda a, b: \
-                                     -1 if a[0] in data._id_fields \
-                                       else (1 if b[0] in data._id_fields \
+                                     -1 if a[0] in data._tableau_id_fields \
+                                       else (1 if b[0] in data._tableau_id_fields \
                                                 else cmp(a[0], b[0]))):
                     if isinstance(v, DynamicField):
                         if not v.rendered:
                             continue
                         v = v.render()
                     values.append((k, v))
-                builder.insert(data._schema, values)
+                builder.insert(data._tableau_schema, values)
+        builder.flush()

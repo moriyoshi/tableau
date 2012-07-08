@@ -7,7 +7,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 setup(
     name='tableau',
-    version='0.0.1',
+    version='0.0.2',
     author='Moriyoshi Koizumi',
     author_email='mozo@mozo.jp',
     description="Tableau is a collection of helper classes for building test fixtures and seed data",
@@ -26,5 +26,6 @@ setup(
     keywords='test testing fixture seed',
     url='http://github.com/moriyoshi/tableau',
     test_suite='tableau.tests',
+    tests_require=['sqlalchemy >= 0.7'],
     packages=find_packages()
     )
