@@ -141,7 +141,12 @@ def newSADatum(metadata, base=None):
                         for _k in v.referred_fields:
                             self.__check_key_is_declared(_k)
                 self._tableau_fields[k] = v
-                if self._tableau_declarative is not None:
+                if self._tableau_declarative is not None and not isinstance(v, Lazy):
+                    self._tableau_declarative.__setattr__(self, k, self._value_of(k, v))
+
+        def _tableau_on_fixation(self):
+            for k, v in self._tableau_fields.items():
+                if self._tableau_declarative is not None and isinstance(v, Lazy):
                     self._tableau_declarative.__setattr__(self, k, self._value_of(k, v))
 
     return SADatum

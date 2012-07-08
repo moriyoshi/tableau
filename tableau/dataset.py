@@ -213,4 +213,5 @@ class DataWalker(object):
         if dataset.add(datum):
             for k, v in list(datum._tableau_fields.items()):
                 self._handle(datum, k, v)
+            datum._tableau_on_fixation()
         return datum

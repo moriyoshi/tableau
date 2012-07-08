@@ -19,6 +19,9 @@ class DatumBase(object):
     def _id(self):
         return tuple(getattr(self, k) for k in self._tableau_id_fields)
 
+    def _tableau_on_fixation(self):
+        pass
+
 class Datum(DatumBase):
     def __init__(self, schema, id_fields, **fields):
         self._tableau_schema = schema
