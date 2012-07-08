@@ -38,7 +38,7 @@ class Datum(DatumBase):
         else:
             if isinstance(v, FunctionType):
                 v = Lazy(v)
-            elif isinstance(v, Datum):
+            elif isinstance(v, DatumBase):
                 # implicit many_to_one
                 v = many_to_one(v, k, v._tableau_id_fields)
             elif is_iterable_container(v):

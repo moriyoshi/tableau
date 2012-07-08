@@ -1,8 +1,9 @@
 from sqlalchemy.schema import Table
 from tableau.containers import DatumBase, value_of
-from tableau.declarations import auto
-from tableau.utils import string_container_from_value
+from tableau.declarations import DynamicField, one_to_many, many_to_one, many_to_many, auto
+from tableau.utils import string_container_from_value, is_iterable_container
 from sqlalchemy.orm.properties import RelationshipProperty
+from types import FunctionType
 
 def newSADatum(metadata, base=None):
     table_to_declarative = {}
@@ -100,12 +101,34 @@ def newSADatum(metadata, base=None):
             for k, v in _fields.iteritems():
                 setattr(self, k, v)
 
+        def __check_key_is_declared(self, k):
+            if k not in self._tableau_table.columns and (base is None or not self.__class__.__mapper__.has_property(k)):
+                raise KeyError("%s is not declared in the table definition or mapper configuration" % k)
+
         def __setattr__(self, k, v):
             if k.startswith('_'):
                 object.__setattr__(self, k, v)
             else:
-                if k not in self._tableau_table.columns and (base is None or not self.__class__.__mapper__.has_property(k)):
-                    raise KeyError("%s is not in the table definition" % k)
+                if isinstance(v, FunctionType):
+                    v = Lazy(v)
+                elif isinstance(v, DatumBase):
+                    # implicit many_to_one
+                    v = many_to_one(v, k, v._tableau_id_fields)
+                elif is_iterable_container(v):
+                    # implicit one_to_many
+                    v = one_to_many(v, k)
+                if isinstance(v, DynamicField):
+                    v.bind(self, k)
+
+                if isinstance(v, many_to_one):
+                    for _k in v.this_side_fields:
+                        self.__check_key_is_declared(_k)
+                elif isinstance(v, one_to_many):
+                    self.__check_key_is_declared(k)
+                    if v.referred_fields is not None:
+                        for _k in v.referred_fields:
+                            self.__check_key_is_declared(_k)
+                self._tableau_fields[k] = v
                 if self._tableau_declarative is not None:
                     self._tableau_declarative.__setattr__(self, k, value_of(v))
 

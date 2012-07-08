@@ -55,10 +55,10 @@ class Lazy(DynamicField):
 class many_to_one(DynamicField):
     def __init__(self, schema_or_value=unspecified, this_side_fields=None, other_side_fields=None):
         self.rendered = False
-        from tableau.containers import Datum
+        from tableau.containers import DatumBase
         self._value = None
         self._value_set = False
-        if isinstance(schema_or_value, Datum):
+        if isinstance(schema_or_value, DatumBase):
             self.schema = schema_or_value._tableau_schema
             self.value = schema_or_value
         elif schema_or_value is None:
@@ -67,7 +67,7 @@ class many_to_one(DynamicField):
         elif isinstance(schema_or_value, basestring):
             self.schema = schema_or_value
         elif schema_or_value is not unspecified:
-            raise TypeError("schema_or_value must be a Datum, None, or Unspecified")
+            raise TypeError("schema_or_value must be a DatumBase, None, or Unspecified")
 
         self.this_side_fields = string_container_from_value(this_side_fields, tuple)
         self.other_side_fields = string_container_from_value(other_side_fields, tuple)

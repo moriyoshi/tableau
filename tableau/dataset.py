@@ -5,7 +5,7 @@ import logging
 import re
 from warnings import warn
 from itertools import chain
-from tableau.containers import DatumBase
+from tableau.containers import Datum
 from tableau.declarations import one_to_many, many_to_many, many_to_one, DynamicField, auto
 
 __all__ = [
@@ -166,7 +166,7 @@ class DataWalker(object):
             if len(those_field_values) != len(value.other_side_fields):
                 raise ValueError("%s.%s: number of other side's fields must be identical to the other side's datum's id fields" % (datum._tableau_schema, name))
             if value.via is not None:
-                intermediate_datum = DatumBase(
+                intermediate_datum = Datum(
                     value.via,
                     value.this_side_fields + value.other_side_fields,
                     **dict(

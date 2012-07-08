@@ -136,6 +136,7 @@ class DataSetTest(TestCase):
                 )
             suite = DataSuite()
             DataWalker(suite)(a)
+            self.assertEqual('OtherSchema', a.parent._tableau_schema)
             self.assertEqual(i, a.parent_id)
 
     def testManyToOne2(self):
@@ -151,6 +152,26 @@ class DataSetTest(TestCase):
         suite = DataSuite()
         DataWalker(suite)(a)
         self.assertEqual(None, a._tableau_fields['parent'].render())
+
+    def testManyToOne3(self):
+        metadata = MetaData()
+        Table('Schema', metadata,
+            Column('id', Integer, primary_key=True),
+            Column('parent_id', Integer)
+            )
+        SADatum = newSADatum(metadata)
+        a = SADatum(
+            'Schema',
+            'id',
+            id=1,
+            parent=many_to_one(
+                Datum('Foo', 'id', id=1),
+                'parent_id'
+                )
+            )
+        suite = DataSuite()
+        DataWalker(suite)(a)
+        self.assertEqual(1, a._tableau_fields['parent'].render())
 
 class SADatumTest(TestCase):
     def setUp(self):

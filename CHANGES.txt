@@ -10,3 +10,6 @@ Change history
 0.0.2
     Support mapping to SQLAlchemy tables and declarative classses.
     Still no docs!
+
+0.0.3
+    Fix critical bugs in 0.0.2.
