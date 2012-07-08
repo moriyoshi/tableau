@@ -1,6 +1,6 @@
 from sqlalchemy.schema import Table
 from tableau.containers import DatumBase, value_of
-from tableau.declarations import DynamicField, one_to_many, many_to_one, many_to_many, auto
+from tableau.declarations import DynamicField, Lazy, one_to_many, many_to_one, many_to_many, auto
 from tableau.utils import string_container_from_value, is_iterable_container
 from sqlalchemy.orm.properties import RelationshipProperty
 from types import FunctionType
