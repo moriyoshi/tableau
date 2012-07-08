@@ -1,5 +1,5 @@
 from sqlalchemy.schema import Table
-from tableau.containers import DatumBase, value_of
+from tableau.containers import DatumBase
 from tableau.declarations import DynamicField, Lazy, one_to_many, many_to_one, many_to_many, auto
 from tableau.utils import string_container_from_value, is_iterable_container
 from sqlalchemy.orm.properties import RelationshipProperty
@@ -105,6 +105,18 @@ def newSADatum(metadata, base=None):
             if k not in self._tableau_table.columns and (base is None or not self.__class__.__mapper__.has_property(k)):
                 raise KeyError("%s is not declared in the table definition or mapper configuration" % k)
 
+        def _value_of(self, k, value):
+            if isinstance(value, one_to_many) and base is not None:
+                prop = self.__class__.__mapper__.get_property(k) 
+                if prop.uselist:
+                    return value()
+                else:
+                    return value()[0]
+            elif isinstance(value, DynamicField):
+                return value()
+            else:
+                return value
+
         def __setattr__(self, k, v):
             if k.startswith('_'):
                 object.__setattr__(self, k, v)
@@ -130,6 +142,6 @@ def newSADatum(metadata, base=None):
                             self.__check_key_is_declared(_k)
                 self._tableau_fields[k] = v
                 if self._tableau_declarative is not None:
-                    self._tableau_declarative.__setattr__(self, k, value_of(v))
+                    self._tableau_declarative.__setattr__(self, k, self._value_of(k, v))
 
     return SADatum
