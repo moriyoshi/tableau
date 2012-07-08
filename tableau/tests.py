@@ -393,3 +393,25 @@ class SADatumTest(TestCase):
         self.assertEqual(1, datum.bars[0].id)
         self.assertEqual(2, datum.bars[1].id)
 
+    def testDefaultValue(self):
+        table = Table('Test', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('field', String, default='foo')
+            )
+        SADatum = newSADatum(self.metadata)
+        datum1 = SADatum(
+            'Test',
+            'id'
+            )
+        datum2 = SADatum(
+            'Test',
+            'id',
+            field='test'
+            )
+        self.assertEqual('Test', datum1._tableau_schema)
+        self.assertEqual(table, datum1._tableau_table)
+        self.assertEqual('foo', datum1.field)
+        self.assertEqual('Test', datum2._tableau_schema)
+        self.assertEqual(table, datum2._tableau_table)
+        self.assertEqual('test', datum2.field)
+

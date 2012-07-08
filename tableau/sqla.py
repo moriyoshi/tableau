@@ -4,6 +4,7 @@ from tableau.declarations import DynamicField, Lazy, one_to_many, many_to_one, m
 from tableau.utils import string_container_from_value, is_iterable_container
 from sqlalchemy.orm.properties import RelationshipProperty
 from types import FunctionType
+from warnings import warn
 
 def newSADatum(metadata, base=None):
     table_to_declarative = {}
@@ -18,6 +19,14 @@ def newSADatum(metadata, base=None):
             if hasattr(base, '_decl_class_registry'):
                 return True
         return False
+
+    def default_value(column_def):
+        if column_def.default is None:
+            return None
+        if not column_def.default.is_scalar:
+            warn("non-scalar default value is not supported")
+            return None
+        return column_def.default.arg
 
     class SADatum(DatumBase):
         _tableau_declarative = None
@@ -69,7 +78,8 @@ def newSADatum(metadata, base=None):
 
         def __init__(self, schema, id_fields=None, **fields):
             columns = self._tableau_table.columns
-            _fields = dict((k, columns[k].default) for k in columns.keys())
+
+            _fields = dict((k, default_value(columns[k])) for k in columns.keys())
             _fields.update(fields)
             primary_key_columns = self._tableau_table.primary_key.columns.keys()
             if id_fields is not None:
@@ -117,6 +127,14 @@ def newSADatum(metadata, base=None):
             else:
                 return value
 
+        def __getattribute__(self, k):
+            if k.startswith('_') or base is not None:
+                return object.__getattribute__(self, k)
+            try:
+                return object.__getattribute__(self, '_tableau_fields')[k]
+            except KeyError:
+                raise AttributeError('%s.%s' % (self._tableau_schema, k))
+                
         def __setattr__(self, k, v):
             if k.startswith('_'):
                 object.__setattr__(self, k, v)
@@ -140,7 +158,7 @@ def newSADatum(metadata, base=None):
                     if v.referred_fields is not None:
                         for _k in v.referred_fields:
                             self.__check_key_is_declared(_k)
-                self._tableau_fields[k] = v
+                object.__getattribute__(self, '_tableau_fields')[k] = v
                 if self._tableau_declarative is not None and not isinstance(v, Lazy):
                     self._tableau_declarative.__setattr__(self, k, self._value_of(k, v))
 
