@@ -160,7 +160,7 @@ def newSADatum(metadata, base=None):
                             self.__check_key_is_declared(_k)
                 object.__getattribute__(self, '_tableau_fields')[k] = v
                 if self._tableau_declarative is not None and not isinstance(v, Lazy):
-                    self._tableau_declarative.__setattr__(self, k, self._value_of(k, v))
+                    object.__setattr__(self, k, self._value_of(k, v))
 
         def _tableau_on_fixation(self):
             for k, v in self._tableau_fields.items():
