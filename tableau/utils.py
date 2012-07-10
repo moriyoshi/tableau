@@ -41,3 +41,6 @@ def string_container_from_value(items, type):
         return type((items, ))
     else:
         return type(iter(items))
+
+def is_callable(t):
+    return hasattr(t, '__call__')

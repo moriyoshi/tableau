@@ -11,10 +11,11 @@ from sqlalchemy.orm import sessionmaker, relationship
 
 class DataSetTest(TestCase):
     def setUp(self):
-        pass
+        self.SADatum = None
 
     def tearDown(self):
-        pass
+        if self.SADatum is not None:
+            self.SADatum.cleanup()
 
     def testAuto(self):
         a = Datum(
@@ -159,7 +160,7 @@ class DataSetTest(TestCase):
             Column('id', Integer, primary_key=True),
             Column('parent_id', Integer)
             )
-        SADatum = newSADatum(metadata)
+        SADatum = self.SADatum = newSADatum(metadata)
         a = SADatum(
             'Schema',
             'id',
@@ -180,12 +181,19 @@ class SADatumTest(TestCase):
     def setUp(self):
         self.metadata = MetaData()
         self.declarative_base = declarative_base(metadata=self.metadata)
+        self.SADatum = None
+
+    def tearDown(self):
+        if self.SADatum is not None:
+            self.SADatum.cleanup()
+        del self.declarative_base
+        del self.metadata
 
     def testPrimaryKey1(self):
         table = Table('Test', self.metadata,
             Column('id', Integer, primary_key=True)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         try:
             SADatum(
                 'Test',
@@ -200,7 +208,7 @@ class SADatumTest(TestCase):
             Column('id1', Integer, primary_key=True),
             Column('id2', Integer, primary_key=True)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         try:
             SADatum(
                 'Test',
@@ -214,7 +222,7 @@ class SADatumTest(TestCase):
         table = Table('Test', self.metadata,
             Column('id', Integer, primary_key=True)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         try:
             SADatum(
                 'Test',
@@ -228,12 +236,12 @@ class SADatumTest(TestCase):
         table = Table('Test', self.metadata,
             Column('id', Integer, primary_key=True)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum('Test')
         self.assertEqual(('id', ), datum._tableau_id_fields)
 
     def testWithSchemaOnly1(self):
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         try:
             SADatum(
                 'Test',
@@ -249,7 +257,7 @@ class SADatumTest(TestCase):
             Column('id', Integer, primary_key=True),
             Column('field', String)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum(
             'Test',
             'id',
@@ -263,7 +271,7 @@ class SADatumTest(TestCase):
             Column('id', Integer, primary_key=True),
             Column('field', String)
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum(
             table,
             'id',
@@ -272,11 +280,25 @@ class SADatumTest(TestCase):
         self.assertEqual('Test', datum._tableau_schema)
         self.assertEqual(table, datum._tableau_table)
 
+    def testAuxPropertyWithSchemaOnly(self):
+        table = Table('Test', self.metadata,
+            Column('id', Integer, primary_key=True),
+            Column('field', String)
+            )
+        SADatum = self.SADatum = newSADatum(self.metadata)
+        datum = SADatum(
+            table,
+            'id',
+            field='test'
+            )
+        datum._aux = 1
+        self.assertEqual(1, datum._aux)
+
     def testWithDeclarative1(self):
         class Test(self.declarative_base):
             __tablename__ = 'Oops'
             id = Column(Integer, primary_key=True)
-        SADatum = newSADatum(self.metadata, self.declarative_base)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         try:
             SADatum(
                 'Test',
@@ -288,27 +310,11 @@ class SADatumTest(TestCase):
             self.assertEqual("Test is not defined in the metadata", e.args[0])
 
     def testWithDeclarative2(self):
-        table = Table('Test', self.metadata, Column('id', Integer, primary_key=True))
-        class Test(self.declarative_base):
-            __tablename__ = 'Oops'
-            id = Column(Integer, primary_key=True)
-        SADatum = newSADatum(self.metadata, self.declarative_base)
-        try:
-            SADatum(
-                'Test',
-                'id',
-                field='test'
-                )
-            self.fail("No expection raised")
-        except ValueError, e:
-            self.assertEqual("declarative class for Test is not in the class registry", e.args[0])
-
-    def testWithDeclarative3(self):
         class Test(self.declarative_base):
             __tablename__ = 'Test'
             id = Column(Integer, primary_key=True)
             field = Column(String)
-        SADatum = newSADatum(self.metadata, self.declarative_base)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum(
             'Test',
             'id',
@@ -317,14 +323,27 @@ class SADatumTest(TestCase):
         self.assertEqual('Test', datum._tableau_schema)
         self.assertEqual(Test.__table__, datum._tableau_table)
         self.assertEqual('test', datum.field)
-        self.assertIsInstance(datum, Test)
+
+    def testAuxPropertyWithDeclarative(self):
+        class Test(self.declarative_base):
+            __tablename__ = 'Test'
+            id = Column(Integer, primary_key=True)
+            field = Column(String)
+        SADatum = self.SADatum = newSADatum(self.metadata)
+        datum = SADatum(
+            'Test',
+            'id',
+            field='test'
+            )
+        datum._aux = 1
+        self.assertEqual(1, datum._aux)
 
     def testIfDeclarativeIsWalkable(self):
         class Test(self.declarative_base):
             __tablename__ = 'Test'
             id = Column(Integer, primary_key=True)
             field = Column(String)
-        SADatum = newSADatum(self.metadata, self.declarative_base)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum(
             'Test',
             auto('id'),
@@ -333,7 +352,6 @@ class SADatumTest(TestCase):
         self.assertEqual('Test', datum._tableau_schema)
         self.assertEqual(Test.__table__, datum._tableau_table)
         self.assertEqual('test', datum.field)
-        self.assertIsInstance(datum, Test)
         suite = DataSuite()
         DataWalker(suite)(datum)
         self.assertEqual(1, datum.id)
@@ -359,7 +377,7 @@ class SADatumTest(TestCase):
             __mapper_args__ = {'polymorphic_identity': 'foobar'}
             id = Column(Integer, ForeignKey('Bar.id'), primary_key=True)
 
-        SADatum = newSADatum(self.metadata, self.declarative_base)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum = SADatum(
             'Foo',
             auto('id'),
@@ -380,10 +398,7 @@ class SADatumTest(TestCase):
         self.assertEqual('Foo', datum._tableau_schema)
         self.assertEqual(Foo.__table__, datum._tableau_table)
         self.assertEqual('test', datum.field)
-        self.assertIsInstance(datum, Foo)
         self.assertEqual('test', datum.some_model_specific_method())
-        self.assertIsInstance(datum.bars[0], Bar)
-        self.assertIsInstance(datum.bars[1], Bar)
         engine = create_engine('sqlite+pysqlite:///', echo=True)
         session = sessionmaker(engine)()
         self.metadata.create_all(engine)
@@ -398,7 +413,7 @@ class SADatumTest(TestCase):
             Column('id', Integer, primary_key=True),
             Column('field', String, default='foo')
             )
-        SADatum = newSADatum(self.metadata)
+        SADatum = self.SADatum = newSADatum(self.metadata)
         datum1 = SADatum(
             'Test',
             'id'
@@ -415,3 +430,20 @@ class SADatumTest(TestCase):
         self.assertEqual(table, datum2._tableau_table)
         self.assertEqual('test', datum2.field)
 
+    def testReentrance(self):
+        class Test(self.declarative_base):
+            __tablename__ = 'Test'
+            id = Column(Integer, primary_key=True)
+            field = Column(String)
+        SADatum = self.SADatum = newSADatum(self.metadata)
+        datum1 = SADatum(
+            'Test',
+            'id'
+            )
+        SADatum.cleanup()
+
+        SADatum = self.SADatum = newSADatum(self.metadata)
+        datum1 = SADatum(
+            'Test',
+            'id'
+            )
