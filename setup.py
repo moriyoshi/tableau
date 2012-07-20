@@ -7,7 +7,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 setup(
     name='tableau',
-    version='0.0.4pre',
+    version='0.0.4pre2',
     author='Moriyoshi Koizumi',
     author_email='mozo@mozo.jp',
     description="Tableau is a collection of helper classes for building test fixtures and seed data",
