@@ -46,7 +46,7 @@ Tableau is a collection of helper classes for building test fixtures and seed da
     (1, 1, 1),
     (2, 1, 1);
 
-- Automatically mapping the existing SQLAlchemy tables / declarative classes
+- Automatically mapping the existing SQLAlchemy tables / mapped classes
   to the `Data`::
 
     from tableau.sqla import newSADatum
@@ -63,7 +63,7 @@ Tableau is a collection of helper classes for building test fixtures and seed da
       def some_model_specific_method(self):
         return self.field
 
-    Datum = newSADatum(metadata, Base)
+    Datum = newSADatum(metadata)
     datum = Datum(
       'foos', ('id'),
       field='test'
